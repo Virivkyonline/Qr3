@@ -52,13 +52,32 @@ function fillPaymentFields(prefix, payment = {}, fallback = {}) {
   });
 }
 
-function setQrImage(imgId, placeholderId, imageBase64) {
+function getQrImageSrc(qrPayload) {
+  if (!qrPayload) return "";
+  if (typeof qrPayload === "string") {
+    return qrPayload ? `data:image/png;base64,${qrPayload}` : "";
+  }
+  if (qrPayload.imageBase64) {
+    return `data:image/png;base64,${qrPayload.imageBase64}`;
+  }
+  if (qrPayload.svg) {
+    const svgBase64 = btoa(unescape(encodeURIComponent(qrPayload.svg)));
+    return `data:image/svg+xml;base64,${svgBase64}`;
+  }
+  if (qrPayload.imageUrl) {
+    return qrPayload.imageUrl;
+  }
+  return "";
+}
+
+function setQrImage(imgId, placeholderId, qrPayload) {
   const img = qs(imgId);
   const placeholder = qs(placeholderId);
   if (!img) return;
 
-  if (imageBase64) {
-    img.src = `data:image/png;base64,${imageBase64}`;
+  const src = getQrImageSrc(qrPayload);
+  if (src) {
+    img.src = src;
     img.style.display = "block";
     if (placeholder) placeholder.style.display = "none";
   } else {
@@ -90,8 +109,6 @@ async function api(path, options = {}) {
   if (hasBody && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
-
-  console.log("API TOKEN:", token);
 
   let res;
   try {
@@ -244,28 +261,27 @@ function bindAuth() {
         email,
         variableSymbol
       });
-      setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", "");
-      setStatus(qs("registerStatus"), "Účet bol vytvorený. Nižšie je variabilný symbol a pokus o načítanie platobných údajov.", "ok");
+      setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", null);
+      setStatus(qs("registerStatus"), "Účet bol vytvorený. Načítavam platobné údaje a QR kód.", "ok");
 
       try {
-        const variableSymbol =
-  state.me.license?.variableSymbol ||
-  loginData?.license?.variableSymbol ||
-  registerData?.license?.variableSymbol ||
-  "";
+        const payment = await api("/api/license/payment-qr", {
+          method: "POST",
+          body: JSON.stringify({ variableSymbol })
+        });
 
-const payment = await api("/api/license/payment-qr", {
-  method: "POST",
-  body: JSON.stringify({ variableSymbol })
-});
-        setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", payment?.imageBase64 || "");
+        fillPaymentFields("postRegister", payment?.payment || {}, {
+          email,
+          variableSymbol
+        });
+        setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", payment);
         setStatus(qs("registerStatus"), "Účet bol vytvorený. Platobné údaje sú pripravené nižšie.", "ok");
       } catch (paymentErr) {
         fillPaymentFields("postRegister", {}, {
           email,
           variableSymbol
         });
-        setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", "");
+        setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", null);
         setStatus(qs("registerStatus"), normalizeApiMessage(paymentErr), "err");
       }
     } catch (err) {
@@ -624,8 +640,8 @@ async function bindLicense() {
   });
   if (qs("licenseMiniVs")) qs("licenseMiniVs").textContent = state.me.license.variableSymbol || "—";
   if (qs("licenseMiniVsMirror")) qs("licenseMiniVsMirror").textContent = state.me.license.variableSymbol || "—";
-  setQrImage("licenseQrImage", "licenseQrPlaceholder", "");
-  setQrImage("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder", "");
+  setQrImage("licenseQrImage", "licenseQrPlaceholder", null);
+  setQrImage("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder", null);
 
   try {
     const payment = await api("/api/license/payment-qr", {
@@ -641,8 +657,8 @@ async function bindLicense() {
     if (qs("licenseMiniVs")) qs("licenseMiniVs").textContent = payment?.payment?.variableSymbol || state.me.license.variableSymbol || "—";
     if (qs("licenseMiniVsMirror")) qs("licenseMiniVsMirror").textContent = payment?.payment?.variableSymbol || state.me.license.variableSymbol || "—";
     if (qs("licenseMiniAmount")) qs("licenseMiniAmount").textContent = money(payment?.payment?.amount || 0);
-    setQrImage("licenseQrImage", "licenseQrPlaceholder", payment?.imageBase64 || "");
-    setQrImage("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder", payment?.imageBase64 || "");
+    setQrImage("licenseQrImage", "licenseQrPlaceholder", payment);
+    setQrImage("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder", payment);
   } catch (err) {
     setStatus(qs("licenseStatusMessage") || qs("dashboardLicenseStatus"), normalizeApiMessage(err), "err");
   }

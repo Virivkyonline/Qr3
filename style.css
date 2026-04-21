@@ -251,13 +251,15 @@ input:focus,select:focus,textarea:focus{
   .theme-switcher{width:100%;justify-content:center}
 }
 
+
+.status-badge.paid{background:#eff8ff;color:#175cd3}
+.payment-card{margin-top:18px}
 .payment-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:stretch}
 .payment-qr-box{min-height:260px}
-.nested-card{margin-top:18px;padding:18px}
-.account-box.compact .account-row:last-child,.summary-box div:last-child{border-bottom:0}
+.account-box.compact .account-row strong{word-break:break-word;text-align:right}
+.auth-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px}
+.admin-filters{margin-bottom:18px}
+.btn-reset{background:#fff7ed;color:#b54708}
 .btn-paid{background:#eff8ff;color:#175cd3}
-.btn-reset{background:#f5f3ff;color:#6d28d9}
-.status-badge.paid{background:#eff8ff;color:#175cd3}
-@media (max-width: 980px){
-  .payment-grid{grid-template-columns:1fr}
-}
+.single-card-layout{max-width:560px;margin:40px auto}
+@media (max-width:980px){.payment-grid{grid-template-columns:1fr}}
