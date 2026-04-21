@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="QR Platinum"/>
   <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
   <link rel="icon" type="image/png" href="icons/icon-192.png"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -17,8 +18,12 @@
     <aside class="sidebar">
       <a class="brand brand-sidebar" href="dashboard.html">
         <span class="brand-mark">QP</span>
-        <span class="brand-text"><strong>QR kódy Platinum</strong><small>Dashboard</small></span>
+        <span class="brand-text">
+          <strong>QR kódy Platinum</strong>
+          <small>Dashboard</small>
+        </span>
       </a>
+
       <nav class="side-nav">
         <a class="active" href="dashboard.html">Prehľad</a>
         <a href="companies.html">Firmy</a>
@@ -26,12 +31,17 @@
         <a href="license.html">Moja licencia</a>
         <a href="admin.html">Admin</a>
       </nav>
+
       <button id="logoutBtn" class="btn btn-secondary full sidebar-logout">Odhlásiť sa</button>
     </aside>
 
     <main class="content">
       <header class="content-topbar">
-        <div><h1>Dashboard</h1><p class="muted">Prehľad účtu, licencie a posledných aktivít.</p></div>
+        <div>
+          <h1>Dashboard</h1>
+          <p class="muted">Prehľad účtu, licencie a posledných aktivít.</p>
+        </div>
+
         <div class="topbar-actions">
           <div class="theme-switcher" aria-label="Výber farby">
             <span class="theme-switcher-label">Motív</span>
@@ -40,19 +50,37 @@
             <button type="button" class="theme-dot is-green" data-theme="green" title="Zelená"></button>
             <button type="button" class="theme-dot is-purple" data-theme="purple" title="Fialová"></button>
           </div>
+
           <div class="user-pill" id="userEmailPill">neprihlásený</div>
         </div>
       </header>
 
       <section class="dashboard-grid">
-        <article class="panel-card"><span class="card-label">Stav licencie</span><strong id="licenseStatusBadge" class="status-badge pending">Čaká na úhradu</strong><p class="muted">Po prijatí platby admin účet aktivuje.</p></article>
-        <article class="panel-card"><span class="card-label">Počet firiem</span><strong id="companiesCount">0</strong><p class="muted">Aktuálne uložené firmy v tvojom účte.</p></article>
-        <article class="panel-card"><span class="card-label">Posledné QR</span><strong id="lastQrCount">0</strong><p class="muted">Počet QR vygenerovaných na tomto zariadení.</p></article>
+        <article class="panel-card">
+          <span class="card-label">Stav licencie</span>
+          <strong id="licenseStatusBadge" class="status-badge pending">Čaká na úhradu</strong>
+          <p class="muted">Po prijatí platby admin účet aktivuje.</p>
+        </article>
+
+        <article class="panel-card">
+          <span class="card-label">Posledné QR</span>
+          <strong id="lastQrCount">0</strong>
+          <p class="muted">Počet QR vygenerovaných v tomto prehliadači.</p>
+        </article>
+
+        <article class="panel-card">
+          <span class="card-label">Počet firiem</span>
+          <strong id="companiesCount">0</strong>
+          <p class="muted">Počet uložených firemných profilov.</p>
+        </article>
       </section>
 
       <section class="two-col">
         <article class="panel-card">
-          <div class="panel-head"><h2>Stav účtu</h2></div>
+          <div class="panel-head">
+            <h2>Stav účtu</h2>
+          </div>
+
           <div class="account-box">
             <div class="account-row"><span>Email</span><strong id="accountEmail">—</strong></div>
             <div class="account-row"><span>Rola</span><strong id="accountRole">user</strong></div>
@@ -64,37 +92,46 @@
         </article>
 
         <article class="panel-card">
-          <div class="panel-head"><h2>Rýchla akcia</h2></div>
-          <form id="quickQrForm" class="form-stack">
+          <div class="panel-head">
+            <h2>Rýchly vstup</h2>
+          </div>
+          <form id="quickQrForm" class="form-grid">
             <label><span>Firma</span><select id="quickCompany"></select></label>
-            <label><span>Suma (€)</span><input id="quickAmount" type="number" min="0.01" step="0.01"/></label>
+            <label><span>Suma (€)</span><input type="number" id="quickAmount" min="0.01" step="0.01"/></label>
             <button class="btn btn-secondary" type="submit">Skontrolovať pripravenosť</button>
           </form>
           <div id="quickQrStatus" class="inline-status"></div>
         </article>
       </section>
 
-      <section class="panel-card section-gap-sm">
-        <div class="panel-head"><h2>Moja licencia</h2><a href="license.html" class="text-link">Otvoriť detail</a></div>
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>Moja licencia</h2>
+          <a href="license.html" class="text-link">Otvoriť detail</a>
+        </div>
+
         <div class="payment-grid">
           <div class="account-box compact">
             <div class="account-row"><span>Stav</span><strong id="licenseStatusBadgeMirror">Platba čaká</strong></div>
-            <div class="account-row"><span>Email</span><strong id="dashboardLicenseEmail">—</strong></div>
-            <div class="account-row"><span>Variabilný symbol</span><strong id="dashboardLicenseVs">—</strong></div>
-            <div class="account-row"><span>IBAN</span><strong id="dashboardLicenseIban">—</strong></div>
-            <div class="account-row"><span>Suma</span><strong id="dashboardLicenseAmount">—</strong></div>
-            <div class="account-row"><span>Variabilný symbol (kópia)</span><strong id="licenseMiniVsMirror">—</strong></div>
-            <div class="form-actions"><button class="btn btn-secondary" type="button" id="copyVsBtn">Skopírovať VS</button></div>
+            <div class="account-row"><span>Variabilný symbol</span><strong id="licenseMiniVsMirror">—</strong></div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" type="button" id="copyVsBtn">Skopírovať VS</button>
+            </div>
           </div>
+
           <div class="qr-preview-box payment-qr-box">
             <img id="dashboardLicenseQrImage" alt="QR na úhradu licencie"/>
-            <div id="dashboardLicenseQrPlaceholder" class="placeholder-copy">QR na úhradu sa zobrazí po načítaní platobných údajov.</div>
+            <div id="dashboardLicenseQrPlaceholder" class="placeholder-copy">
+              QR na úhradu sa zobrazí po načítaní platobných údajov.
+            </div>
           </div>
         </div>
+
         <div id="dashboardLicenseStatus" class="inline-status"></div>
       </section>
     </main>
   </div>
+
   <script src="app.js"></script>
 </body>
 </html>

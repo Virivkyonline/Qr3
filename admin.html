@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="QR Platinum"/>
   <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
   <link rel="icon" type="image/png" href="icons/icon-192.png"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -22,7 +23,7 @@
 
     <main class="content">
       <header class="content-topbar">
-        <div><h1>Admin panel</h1><p class="muted">Používatelia, filtre a fakturačné nastavenia pre licencie.</p></div>
+        <div><h1>Admin panel</h1><p class="muted">Používatelia, filtre a fakturačná konfigurácia.</p></div>
         <div class="topbar-actions">
           <div class="theme-switcher" aria-label="Výber farby">
             <span class="theme-switcher-label">Motív</span>
@@ -36,37 +37,29 @@
       </header>
 
       <section class="panel-card">
-        <div class="panel-head"><h2>Filtre používateľov</h2></div>
+        <div class="panel-head"><h2>Filtre</h2></div>
         <form class="form-grid" onsubmit="return false;">
-          <label><span>Email</span><input id="adminFilterEmail" type="text" placeholder="filter podľa emailu"/></label>
-          <label><span>Variabilný symbol</span><input id="adminFilterVs" type="text" placeholder="filter podľa VS"/></label>
-          <label><span>Stav</span>
-            <select id="adminFilterStatus">
-              <option value="">Všetky stavy</option>
-              <option value="pending">pending</option>
-              <option value="paid">paid</option>
-              <option value="active">active</option>
-              <option value="blocked">blocked</option>
-            </select>
-          </label>
+          <label><span>Email</span><input type="text" id="adminFilterEmail" placeholder="Hľadaj podľa emailu"/></label>
+          <label><span>Variabilný symbol</span><input type="text" id="adminFilterVs" placeholder="Hľadaj podľa VS"/></label>
+          <label class="full-span"><span>Stav</span><select id="adminFilterStatus"><option value="">Všetko</option><option value="pending">Čaká na úhradu</option><option value="paid">Uhradené</option><option value="active">Aktívne</option><option value="blocked">Blokované</option></select></label>
         </form>
       </section>
 
-      <section class="panel-card section-gap-sm">
+      <section class="panel-card">
         <div class="panel-head"><h2>Používatelia</h2><button id="refreshAdminBtn" class="btn btn-secondary">Obnoviť</button></div>
         <div id="adminUsersList" class="admin-list"></div>
         <div id="adminStatus" class="inline-status"></div>
       </section>
 
-      <section class="panel-card section-gap-sm">
-        <div class="panel-head"><h2>Fakturačná firma pre licencie</h2></div>
+      <section class="panel-card">
+        <div class="panel-head"><h2>Fakturačná firma</h2></div>
         <form id="billingCompanyForm" class="form-grid">
-          <label><span>Príjemca</span><input id="billingBeneficiaryName" type="text" required/></label>
-          <label><span>IBAN</span><input id="billingIban" type="text" required/></label>
-          <label><span>BIC</span><input id="billingBic" type="text"/></label>
-          <label><span>Suma</span><input id="billingAmount" type="number" min="0" step="0.01" required/></label>
-          <label class="full-span"><span>Poznámka k platbe</span><input id="billingPaymentNote" type="text"/></label>
-          <div class="form-actions full-span"><button class="btn btn-primary" type="submit">Uložiť fakturačné údaje</button></div>
+          <label><span>Príjemca</span><input type="text" id="billingBeneficiaryName" required/></label>
+          <label><span>IBAN</span><input type="text" id="billingIban" required/></label>
+          <label><span>BIC</span><input type="text" id="billingBic"/></label>
+          <label><span>Suma licencie (€)</span><input type="number" min="0" step="0.01" id="billingAmount" required/></label>
+          <label class="full-span"><span>Poznámka k platbe</span><textarea id="billingPaymentNote"></textarea></label>
+          <button class="btn btn-primary" type="submit">Uložiť fakturačné údaje</button>
         </form>
         <div id="billingCompanyStatus" class="inline-status"></div>
       </section>

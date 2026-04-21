@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="QR Platinum"/>
   <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
   <link rel="icon" type="image/png" href="icons/icon-192.png"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -36,39 +37,38 @@
       </header>
 
       <section class="dashboard-grid">
-        <article class="panel-card"><span class="card-label">Stav licencie</span><strong id="licensePageStatus" class="status-badge pending">pending</strong><p class="muted">Po úhrade ju admin aktivuje.</p></article>
+        <article class="panel-card"><span class="card-label">Stav licencie</span><strong id="licensePageStatus" class="status-badge pending">pending</strong><p class="muted">Keď potvrdíš platbu, admin aktivuje prístup a appka začne fungovať naplno.</p></article>
         <article class="panel-card"><span class="card-label">Typ licencie</span><strong id="licenseType">one_time</strong><p class="muted">Jednorazová platba pre 1 používateľa.</p></article>
         <article class="panel-card"><span class="card-label">Aktivované</span><strong id="licenseActivatedAt">—</strong><p class="muted">Dátum manuálnej aktivácie adminom.</p></article>
       </section>
 
       <section class="panel-card">
-        <div class="panel-head"><h2>Platobné údaje licencie</h2><button class="btn btn-secondary" type="button" id="copyLicenseVsBtn">Skopírovať VS</button></div>
+        <div class="panel-head"><h2>Platobné údaje</h2><button type="button" class="btn btn-secondary" id="copyLicenseVsBtn">Skopírovať VS</button></div>
         <div class="payment-grid">
           <div class="account-box compact">
-            <div class="account-row"><span>Stav platby</span><strong id="licensePaymentState">čaká na úhradu</strong></div>
-            <div class="account-row"><span>Email</span><strong id="licenseEmail">—</strong></div>
-            <div class="account-row"><span>Variabilný symbol</span><strong id="licenseVs">—</strong></div>
+            <div class="account-row"><span>Platba</span><strong id="licensePaymentState">čaká na úhradu</strong></div>
+            <div class="account-row"><span>Variabilný symbol</span><strong id="licenseVariableSymbol">—</strong></div>
             <div class="account-row"><span>Suma</span><strong id="licenseAmount">—</strong></div>
             <div class="account-row"><span>IBAN</span><strong id="licenseIban">—</strong></div>
             <div class="account-row"><span>BIC</span><strong id="licenseBic">—</strong></div>
             <div class="account-row"><span>Príjemca</span><strong id="licenseBeneficiary">—</strong></div>
-            <div class="account-row"><span>Poznámka</span><strong id="licenseNote">—</strong></div>
+            <div class="account-row"><span>Poznámka</span><strong id="licensePaymentNote">—</strong></div>
           </div>
           <div class="qr-preview-box payment-qr-box">
-            <img id="licenseQrImage" alt="QR kód na úhradu licencie"/>
-            <div id="licenseQrPlaceholder" class="placeholder-copy">QR na úhradu sa zobrazí po načítaní platobných údajov.</div>
+            <img id="licenseQrImage" alt="QR kód pre úhradu licencie"/>
+            <div id="licenseQrPlaceholder" class="placeholder-copy">QR kód sa zobrazí po načítaní platobných údajov.</div>
           </div>
         </div>
         <div id="licenseStatusMessage" class="inline-status"></div>
       </section>
 
-      <section class="panel-card section-gap-sm">
+      <section class="panel-card">
         <div class="panel-head"><h2>Zmena hesla</h2></div>
         <form id="changePasswordForm" class="form-grid">
-          <label><span>Aktuálne heslo</span><input id="currentPassword" type="password" required/></label>
-          <label><span>Nové heslo</span><input id="newPassword" type="password" required/></label>
-          <label><span>Potvrď nové heslo</span><input id="newPassword2" type="password" required/></label>
-          <div class="form-actions full-span"><button class="btn btn-primary" type="submit">Zmeniť heslo</button></div>
+          <label><span>Aktuálne heslo</span><input type="password" id="currentPassword" required/></label>
+          <label><span>Nové heslo</span><input type="password" id="newPassword" required/></label>
+          <label class="full-span"><span>Potvrď nové heslo</span><input type="password" id="newPassword2" required/></label>
+          <button class="btn btn-primary" type="submit">Zmeniť heslo</button>
         </form>
         <div id="changePasswordStatus" class="inline-status"></div>
       </section>

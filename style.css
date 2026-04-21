@@ -251,15 +251,13 @@ input:focus,select:focus,textarea:focus{
   .theme-switcher{width:100%;justify-content:center}
 }
 
-
-.payment-grid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+.payment-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:stretch}
 .payment-qr-box{min-height:260px}
-.account-box.compact .account-row strong{max-width:55%;text-align:right;overflow-wrap:anywhere}
-.section-gap-sm{margin-top:18px}
-.stack-sections{display:grid;gap:18px}
-.section-separator{padding-top:18px;border-top:1px solid var(--line)}
+.nested-card{margin-top:18px;padding:18px}
+.account-box.compact .account-row:last-child,.summary-box div:last-child{border-bottom:0}
 .btn-paid{background:#eff8ff;color:#175cd3}
-.btn-reset{background:#f4f3ff;color:#5925dc}
-@media (max-width: 980px){.payment-grid{grid-template-columns:1fr}}
-
+.btn-reset{background:#f5f3ff;color:#6d28d9}
 .status-badge.paid{background:#eff8ff;color:#175cd3}
+@media (max-width: 980px){
+  .payment-grid{grid-template-columns:1fr}
+}

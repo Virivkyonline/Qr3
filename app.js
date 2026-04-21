@@ -50,6 +50,8 @@ async function api(path, options = {}) {
     headers["Content-Type"] = "application/json";
   }
 
+  console.log("API TOKEN:", token);
+
   let res;
   try {
     res = await fetch(API_BASE + path, {
@@ -101,51 +103,6 @@ async function loadMeFromApi() {
   const data = await api("/api/auth/me", { method: "GET" });
   setCurrentUserFromApi(data);
   return data;
-}
-
-async function getLicensePaymentData(variableSymbol) {
-  const vs = String(variableSymbol || state.me?.license?.variableSymbol || "").trim();
-  if (!vs) throw new Error("Nepodarilo sa načítať variabilný symbol k licencii.");
-
-  return await api("/api/license/payment-qr", {
-    method: "POST",
-    body: JSON.stringify({ variableSymbol: vs })
-  });
-}
-
-function fillPaymentDetails(prefix, payment, fallbackEmail = "") {
-  const p = payment?.payment || {};
-  const resolvedVs = p.variableSymbol || state.me?.license?.variableSymbol || "—";
-  const fields = {
-    Email: fallbackEmail || state.me?.email || "—",
-    Vs: resolvedVs,
-    Amount: money(p.amount || 0),
-    Iban: p.iban || "—",
-    Bic: p.bic || "—",
-    Beneficiary: p.beneficiaryName || "—",
-    Note: p.paymentNote || "—"
-  };
-
-  Object.entries(fields).forEach(([suffix, value]) => {
-    const el = qs(`${prefix}${suffix}`);
-    if (el) el.textContent = value;
-  });
-
-  const img = qs(`${prefix}QrImage`);
-  const placeholder = qs(`${prefix}QrPlaceholder`);
-  if (img) {
-    if (payment?.imageBase64) {
-      img.src = `data:image/png;base64,${payment.imageBase64}`;
-      img.style.display = "block";
-      if (placeholder) placeholder.style.display = "none";
-    } else {
-      img.removeAttribute("src");
-      img.style.display = "none";
-      if (placeholder) placeholder.style.display = "block";
-    }
-  }
-
-  return resolvedVs;
 }
 
 async function requireAuth() {
@@ -236,21 +193,34 @@ function bindAuth() {
 
       await loadMeFromApi();
 
+      setStatus(qs("registerStatus"), "Účet bol vytvorený. Nižšie sú platobné údaje.", "ok");
+
       const card = qs("registrationPaymentCard");
       if (card) card.classList.remove("hidden");
 
-      const variableSymbol =
-        state.me?.license?.variableSymbol ||
-        registerData?.license?.variableSymbol ||
-        registerData?.variableSymbol ||
-        loginData?.license?.variableSymbol ||
-        "";
+      const variableSymbol = state.me?.license?.variableSymbol || registerData?.license?.variableSymbol || "";
+      if (!variableSymbol) throw new Error("Po registrácii sa nepodarilo načítať variabilný symbol.");
 
-      const payment = await getLicensePaymentData(variableSymbol);
-      const resolvedVs = fillPaymentDetails("postRegister", payment, email);
-      state.me.license.variableSymbol = resolvedVs || state.me.license.variableSymbol;
+      const payment = await api("/api/license/payment-qr", {
+        method: "POST",
+        body: JSON.stringify({ variableSymbol })
+      });
 
-      setStatus(qs("registerStatus"), "Účet bol vytvorený. Nižšie sú platobné údaje k úhrade licencie.", "ok");
+      if (qs("postRegisterEmail")) qs("postRegisterEmail").textContent = email;
+      if (qs("postRegisterVs")) qs("postRegisterVs").textContent = payment?.payment?.variableSymbol || variableSymbol || "—";
+      if (qs("postRegisterAmount")) qs("postRegisterAmount").textContent = money(payment?.payment?.amount || 0);
+      if (qs("postRegisterIban")) qs("postRegisterIban").textContent = payment?.payment?.iban || "—";
+      if (qs("postRegisterBic")) qs("postRegisterBic").textContent = payment?.payment?.bic || "—";
+      if (qs("postRegisterBeneficiary")) qs("postRegisterBeneficiary").textContent = payment?.payment?.beneficiaryName || "—";
+      if (qs("postRegisterNote")) qs("postRegisterNote").textContent = payment?.payment?.paymentNote || "—";
+
+      const img = qs("postRegisterQrImage");
+      const placeholder = qs("postRegisterQrPlaceholder");
+      if (img && payment?.imageBase64) {
+        img.src = `data:image/png;base64,${payment.imageBase64}`;
+        img.style.display = "block";
+        if (placeholder) placeholder.style.display = "none";
+      }
     } catch (err) {
       setStatus(qs("registerStatus"), err.message, "err");
     }
@@ -315,7 +285,6 @@ function populateDashboard() {
   qs("accountEmail").textContent = state.me.email || "—";
   qs("accountRole").textContent = state.me.role || "user";
   qs("accountStatus").textContent = state.me.status || "pending";
-  if (qs("licenseMiniVsMirror") && qs("licenseMiniVs")) qs("licenseMiniVsMirror").textContent = qs("licenseMiniVs").textContent;
 
   const badge = qs("licenseStatusBadge");
   if (badge) {
@@ -599,27 +568,49 @@ async function bindLicense() {
   if (qs("licenseActivatedAt")) qs("licenseActivatedAt").textContent = state.me.license.activatedAt || "—";
 
   try {
-    const payment = await getLicensePaymentData(state.me.license.variableSymbol || "");
-    const resolvedVs = fillPaymentDetails("license", payment, state.me.email || "");
-    fillPaymentDetails("dashboardLicense", payment, state.me.email || "");
-    state.me.license.variableSymbol = resolvedVs || state.me.license.variableSymbol;
+    const payment = await api("/api/license/payment-qr", {
+      method: "POST",
+      body: JSON.stringify({
+        variableSymbol: state.me.license.variableSymbol || ""
+      })
+    });
 
-    const paymentState = state.me.license.paymentStatus === "paid" || status === "active" ? "uhradené" : "čaká na úhradu";
-
-    if (qs("licensePaymentState")) qs("licensePaymentState").textContent = paymentState;
-    if (qs("licenseMiniStatus")) qs("licenseMiniStatus").textContent = paymentState;
-    if (qs("licenseStatusBadgeMirror")) {
-      qs("licenseStatusBadgeMirror").textContent = status;
-      qs("licenseStatusBadgeMirror").className = "status-badge " + (status === "active" ? "active" : status === "blocked" ? "blocked" : "pending");
+    if (qs("licensePaymentState")) {
+      qs("licensePaymentState").textContent =
+        state.me.license.paymentStatus === "paid" || status === "active" ? "uhradené" : "čaká na úhradu";
     }
-    if (qs("licenseMiniVsMirror") && qs("dashboardLicenseVs")) qs("licenseMiniVsMirror").textContent = qs("dashboardLicenseVs").textContent;
+    if (qs("licenseVariableSymbol")) qs("licenseVariableSymbol").textContent = payment?.payment?.variableSymbol || state.me.license.variableSymbol || "—";
+    if (qs("licenseAmount")) qs("licenseAmount").textContent = money(payment?.payment?.amount || 0);
+    if (qs("licenseIban")) qs("licenseIban").textContent = payment?.payment?.iban || "—";
+    if (qs("licenseBic")) qs("licenseBic").textContent = payment?.payment?.bic || "—";
+    if (qs("licenseBeneficiary")) qs("licenseBeneficiary").textContent = payment?.payment?.beneficiaryName || "—";
+    if (qs("licensePaymentNote")) qs("licensePaymentNote").textContent = payment?.payment?.paymentNote || "—";
+
+    if (qs("licenseMiniStatus")) qs("licenseMiniStatus").textContent = state.me.license.paymentStatus === "paid" || status === "active" ? "uhradené" : "čaká na úhradu";
+    if (qs("licenseMiniVs")) qs("licenseMiniVs").textContent = payment?.payment?.variableSymbol || "—";
+    if (qs("licenseMiniAmount")) qs("licenseMiniAmount").textContent = money(payment?.payment?.amount || 0);
+    if (qs("licenseStatusBadgeMirror")) qs("licenseStatusBadgeMirror").textContent = status;
+    if (qs("licenseMiniVsMirror")) qs("licenseMiniVsMirror").textContent = payment?.payment?.variableSymbol || "—";
+
+    const setQr = (imgId, placeholderId) => {
+      const img = qs(imgId);
+      const placeholder = qs(placeholderId);
+      if (img && payment?.imageBase64) {
+        img.src = `data:image/png;base64,${payment.imageBase64}`;
+        img.style.display = "block";
+        if (placeholder) placeholder.style.display = "none";
+      }
+    };
+
+    setQr("licenseQrImage", "licenseQrPlaceholder");
+    setQr("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder");
   } catch (err) {
     setStatus(qs("licenseStatusMessage") || qs("dashboardLicenseStatus"), err.message, "err");
   }
 
   qs("copyLicenseVsBtn")?.addEventListener("click", async () => {
     try {
-      await navigator.clipboard.writeText((qs("licenseVs")?.textContent || state.me.license.variableSymbol || "").trim());
+      await navigator.clipboard.writeText(state.me.license.variableSymbol || "");
       setStatus(qs("licenseStatusMessage"), "VS skopírovaný.", "ok");
     } catch {
       setStatus(qs("licenseStatusMessage"), "Nepodarilo sa skopírovať VS.", "err");
@@ -628,7 +619,7 @@ async function bindLicense() {
 
   qs("copyVsBtn")?.addEventListener("click", async () => {
     try {
-      await navigator.clipboard.writeText((qs("licenseMiniVsMirror")?.textContent || qs("licenseMiniVs")?.textContent || state.me.license.variableSymbol || "").trim());
+      await navigator.clipboard.writeText(state.me.license.variableSymbol || "");
       setStatus(qs("dashboardLicenseStatus"), "VS skopírovaný.", "ok");
     } catch {
       setStatus(qs("dashboardLicenseStatus"), "Nepodarilo sa skopírovať VS.", "err");

@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="QR Platinum"/>
   <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
   <link rel="icon" type="image/png" href="icons/icon-192.png"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -45,7 +46,8 @@
         <div class="tab-switch">
           <button class="tab-btn active" data-tab="login">Prihlásenie</button>
           <button class="tab-btn" data-tab="register">Registrácia</button>
-          <button class="tab-btn" data-tab="help">Obnova hesla</button>
+          <button class="tab-btn" data-tab="forgot">Zabudnuté heslo</button>
+          <button class="tab-btn" data-tab="reset">Reset hesla</button>
         </div>
 
         <div class="tab-panel active" data-panel="login">
@@ -70,7 +72,7 @@
           </form>
           <div id="registerStatus" class="inline-status"></div>
 
-          <article id="registrationPaymentCard" class="panel-card payment-card hidden section-gap-sm">
+          <div id="registrationPaymentCard" class="panel-card nested-card hidden">
             <div class="panel-head"><h3>Platobné údaje po registrácii</h3></div>
             <div class="payment-grid">
               <div class="account-box compact">
@@ -83,30 +85,33 @@
                 <div class="account-row"><span>Poznámka</span><strong id="postRegisterNote">—</strong></div>
               </div>
               <div class="qr-preview-box payment-qr-box">
-                <img id="postRegisterQrImage" alt="QR na úhradu licencie po registrácii"/>
-                <div id="postRegisterQrPlaceholder" class="placeholder-copy">QR na úhradu sa zobrazí po úspešnej registrácii.</div>
+                <img id="postRegisterQrImage" alt="QR kód pre úhradu registrácie"/>
+                <div id="postRegisterQrPlaceholder" class="placeholder-copy">Po úspešnej registrácii sa tu zobrazí QR kód na úhradu licencie.</div>
               </div>
             </div>
-          </article>
+          </div>
         </div>
 
-        <div class="tab-panel" data-panel="help">
-          <h2>Obnova hesla</h2>
-          <p class="muted">Ak backend podporuje obnovu hesla, môžeš požiadať o email alebo zadať reset token priamo sem.</p>
-          <div class="stack-sections">
-            <form id="forgotPasswordForm" class="form-stack">
-              <label><span>Email pre obnovu hesla</span><input type="email" id="forgotEmail" placeholder="tvoj@email.sk" required/></label>
-              <button type="submit" class="btn btn-secondary full">Poslať reset link</button>
-              <div id="forgotPasswordStatus" class="inline-status"></div>
-            </form>
-            <form id="resetPasswordForm" class="form-stack section-separator">
-              <label><span>Reset token</span><input type="text" id="resetToken" placeholder="Token z emailu"/></label>
-              <label><span>Nové heslo</span><input type="password" id="resetPassword" placeholder="Nové heslo"/></label>
-              <label><span>Potvrď nové heslo</span><input type="password" id="resetPassword2" placeholder="Zopakuj nové heslo"/></label>
-              <button type="submit" class="btn btn-primary full">Obnoviť heslo</button>
-              <div id="resetPasswordStatus" class="inline-status"></div>
-            </form>
-          </div>
+        <div class="tab-panel" data-panel="forgot">
+          <h2>Zabudnuté heslo</h2>
+          <p class="muted">Pošli si email s inštrukciami na obnovenie hesla.</p>
+          <form id="forgotPasswordForm" class="form-stack">
+            <label><span>Email</span><input type="email" id="forgotEmail" placeholder="tvoj@email.sk" required/></label>
+            <button type="submit" class="btn btn-secondary full">Poslať link na obnovu</button>
+          </form>
+          <div id="forgotPasswordStatus" class="inline-status"></div>
+        </div>
+
+        <div class="tab-panel" data-panel="reset">
+          <h2>Reset hesla</h2>
+          <p class="muted">Ak máš token z emailu, vlož ho sem a nastav nové heslo.</p>
+          <form id="resetPasswordForm" class="form-stack">
+            <label><span>Reset token</span><input type="text" id="resetToken" placeholder="Vlož token z emailu" required/></label>
+            <label><span>Nové heslo</span><input type="password" id="resetPassword" placeholder="Nové heslo" required/></label>
+            <label><span>Potvrď nové heslo</span><input type="password" id="resetPassword2" placeholder="Zopakuj nové heslo" required/></label>
+            <button type="submit" class="btn btn-primary full">Obnoviť heslo</button>
+          </form>
+          <div id="resetPasswordStatus" class="inline-status"></div>
         </div>
       </section>
     </main>
