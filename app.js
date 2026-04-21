@@ -248,15 +248,16 @@ function bindAuth() {
       setStatus(qs("registerStatus"), "Účet bol vytvorený. Nižšie je variabilný symbol a pokus o načítanie platobných údajov.", "ok");
 
       try {
-        const payment = await api("/api/license/payment-qr", {
-          method: "POST",
-          body: JSON.stringify({ variableSymbol })
-        });
+        const variableSymbol =
+  state.me.license?.variableSymbol ||
+  loginData?.license?.variableSymbol ||
+  registerData?.license?.variableSymbol ||
+  "";
 
-        fillPaymentFields("postRegister", payment?.payment || {}, {
-          email,
-          variableSymbol
-        });
+const payment = await api("/api/license/payment-qr", {
+  method: "POST",
+  body: JSON.stringify({ variableSymbol })
+});
         setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", payment?.imageBase64 || "");
         setStatus(qs("registerStatus"), "Účet bol vytvorený. Platobné údaje sú pripravené nižšie.", "ok");
       } catch (paymentErr) {
