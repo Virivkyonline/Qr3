@@ -27,6 +27,47 @@ function setStatus(el, msg, type = "") {
   el.className = "inline-status" + (type ? " " + type : "");
 }
 
+function normalizeApiMessage(err) {
+  const msg = String(err?.message || err || "API chyba").trim();
+  if (/square api/i.test(msg) || /pay by square/i.test(msg)) {
+    return "QR sa teraz nepodarilo vygenerovať. Účet aj variabilný symbol sú vytvorené, ale backend pre PAY by square vrátil chybu.";
+  }
+  return msg || "API chyba";
+}
+
+function fillPaymentFields(prefix, payment = {}, fallback = {}) {
+  const map = {
+    Email: fallback.email || "—",
+    Vs: payment.variableSymbol || fallback.variableSymbol || "—",
+    Amount: payment.amount ? money(payment.amount) : (fallback.amount ? money(fallback.amount) : "—"),
+    Iban: payment.iban || fallback.iban || "—",
+    Bic: payment.bic || fallback.bic || "—",
+    Beneficiary: payment.beneficiaryName || fallback.beneficiaryName || "—",
+    Note: payment.paymentNote || fallback.paymentNote || "—"
+  };
+
+  Object.entries(map).forEach(([suffix, value]) => {
+    const el = qs(`${prefix}${suffix}`);
+    if (el) el.textContent = value;
+  });
+}
+
+function setQrImage(imgId, placeholderId, imageBase64) {
+  const img = qs(imgId);
+  const placeholder = qs(placeholderId);
+  if (!img) return;
+
+  if (imageBase64) {
+    img.src = `data:image/png;base64,${imageBase64}`;
+    img.style.display = "block";
+    if (placeholder) placeholder.style.display = "none";
+  } else {
+    img.removeAttribute("src");
+    img.style.display = "none";
+    if (placeholder) placeholder.style.display = "block";
+  }
+}
+
 function money(v) {
   return `${Number(v || 0).toFixed(2)} EUR`;
 }
@@ -164,7 +205,7 @@ function bindAuth() {
       setStatus(qs("loginStatus"), "Prihlásenie prebehlo úspešne.", "ok");
       setTimeout(() => { location.href = "dashboard.html"; }, 300);
     } catch (err) {
-      setStatus(qs("loginStatus"), err.message, "err");
+      setStatus(qs("loginStatus"), normalizeApiMessage(err), "err");
     }
   });
 
@@ -193,36 +234,41 @@ function bindAuth() {
 
       await loadMeFromApi();
 
-      setStatus(qs("registerStatus"), "Účet bol vytvorený. Nižšie sú platobné údaje.", "ok");
-
       const card = qs("registrationPaymentCard");
       if (card) card.classList.remove("hidden");
 
       const variableSymbol = state.me?.license?.variableSymbol || registerData?.license?.variableSymbol || "";
       if (!variableSymbol) throw new Error("Po registrácii sa nepodarilo načítať variabilný symbol.");
 
-      const payment = await api("/api/license/payment-qr", {
-        method: "POST",
-        body: JSON.stringify({ variableSymbol })
+      fillPaymentFields("postRegister", {}, {
+        email,
+        variableSymbol
       });
+      setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", "");
+      setStatus(qs("registerStatus"), "Účet bol vytvorený. Nižšie je variabilný symbol a pokus o načítanie platobných údajov.", "ok");
 
-      if (qs("postRegisterEmail")) qs("postRegisterEmail").textContent = email;
-      if (qs("postRegisterVs")) qs("postRegisterVs").textContent = payment?.payment?.variableSymbol || variableSymbol || "—";
-      if (qs("postRegisterAmount")) qs("postRegisterAmount").textContent = money(payment?.payment?.amount || 0);
-      if (qs("postRegisterIban")) qs("postRegisterIban").textContent = payment?.payment?.iban || "—";
-      if (qs("postRegisterBic")) qs("postRegisterBic").textContent = payment?.payment?.bic || "—";
-      if (qs("postRegisterBeneficiary")) qs("postRegisterBeneficiary").textContent = payment?.payment?.beneficiaryName || "—";
-      if (qs("postRegisterNote")) qs("postRegisterNote").textContent = payment?.payment?.paymentNote || "—";
+      try {
+        const payment = await api("/api/license/payment-qr", {
+          method: "POST",
+          body: JSON.stringify({ variableSymbol })
+        });
 
-      const img = qs("postRegisterQrImage");
-      const placeholder = qs("postRegisterQrPlaceholder");
-      if (img && payment?.imageBase64) {
-        img.src = `data:image/png;base64,${payment.imageBase64}`;
-        img.style.display = "block";
-        if (placeholder) placeholder.style.display = "none";
+        fillPaymentFields("postRegister", payment?.payment || {}, {
+          email,
+          variableSymbol
+        });
+        setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", payment?.imageBase64 || "");
+        setStatus(qs("registerStatus"), "Účet bol vytvorený. Platobné údaje sú pripravené nižšie.", "ok");
+      } catch (paymentErr) {
+        fillPaymentFields("postRegister", {}, {
+          email,
+          variableSymbol
+        });
+        setQrImage("postRegisterQrImage", "postRegisterQrPlaceholder", "");
+        setStatus(qs("registerStatus"), normalizeApiMessage(paymentErr), "err");
       }
     } catch (err) {
-      setStatus(qs("registerStatus"), err.message, "err");
+      setStatus(qs("registerStatus"), normalizeApiMessage(err), "err");
     }
   });
 
@@ -239,7 +285,7 @@ function bindAuth() {
       setStatus(qs("forgotPasswordStatus"), "Ak účet existuje, email bol odoslaný.", "ok");
       forgotForm.reset();
     } catch (err) {
-      setStatus(qs("forgotPasswordStatus"), err.message, "err");
+      setStatus(qs("forgotPasswordStatus"), normalizeApiMessage(err), "err");
     }
   });
 
@@ -266,7 +312,7 @@ function bindAuth() {
         location.href = "index.html";
       }, 2000);
     } catch (err) {
-      setStatus(qs("resetPasswordStatus"), err.message, "err");
+      setStatus(qs("resetPasswordStatus"), normalizeApiMessage(err), "err");
     }
   });
 
@@ -421,7 +467,7 @@ async function deleteCompany(id) {
     await loadCompanies();
     setStatus(qs("companyStatus"), "Firma bola vymazaná.", "ok");
   } catch (err) {
-    setStatus(qs("companyStatus"), err.message, "err");
+    setStatus(qs("companyStatus"), normalizeApiMessage(err), "err");
   }
 }
 
@@ -474,7 +520,7 @@ function bindCompanies() {
       resetCompanyForm();
       setStatus(qs("companyStatus"), "Firma bola uložená.", "ok");
     } catch (err) {
-      setStatus(qs("companyStatus"), err.message, "err");
+      setStatus(qs("companyStatus"), normalizeApiMessage(err), "err");
     }
   });
 }
@@ -537,7 +583,7 @@ function bindGenerator() {
       if (qs("lastQrCount")) qs("lastQrCount").textContent = localStorage.getItem("qr_count");
       setStatus(qs("generatorStatus"), "QR bolo úspešne vygenerované.", "ok");
     } catch (err) {
-      setStatus(qs("generatorStatus"), err.message, "err");
+      setStatus(qs("generatorStatus"), normalizeApiMessage(err), "err");
     }
   });
 }
@@ -555,7 +601,7 @@ async function bindLicense() {
       paymentStatus: data.license?.paymentStatus || (data.license?.status === "active" ? "paid" : "waiting_payment")
     };
   } catch (err) {
-    setStatus(qs("licenseStatusMessage"), err.message, "err");
+    setStatus(qs("licenseStatusMessage"), normalizeApiMessage(err), "err");
   }
 
   const status = state.me.license.status || "pending";
@@ -567,6 +613,19 @@ async function bindLicense() {
   if (qs("licenseType")) qs("licenseType").textContent = state.me.license.licenseType || "one_time";
   if (qs("licenseActivatedAt")) qs("licenseActivatedAt").textContent = state.me.license.activatedAt || "—";
 
+  const paymentStateText = state.me.license.paymentStatus === "paid" || status === "active" ? "uhradené" : "čaká na úhradu";
+  if (qs("licensePaymentState")) qs("licensePaymentState").textContent = paymentStateText;
+  if (qs("licenseMiniStatus")) qs("licenseMiniStatus").textContent = paymentStateText;
+  if (qs("licenseStatusBadgeMirror")) qs("licenseStatusBadgeMirror").textContent = status;
+
+  fillPaymentFields("license", {}, {
+    variableSymbol: state.me.license.variableSymbol || ""
+  });
+  if (qs("licenseMiniVs")) qs("licenseMiniVs").textContent = state.me.license.variableSymbol || "—";
+  if (qs("licenseMiniVsMirror")) qs("licenseMiniVsMirror").textContent = state.me.license.variableSymbol || "—";
+  setQrImage("licenseQrImage", "licenseQrPlaceholder", "");
+  setQrImage("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder", "");
+
   try {
     const payment = await api("/api/license/payment-qr", {
       method: "POST",
@@ -575,37 +634,16 @@ async function bindLicense() {
       })
     });
 
-    if (qs("licensePaymentState")) {
-      qs("licensePaymentState").textContent =
-        state.me.license.paymentStatus === "paid" || status === "active" ? "uhradené" : "čaká na úhradu";
-    }
-    if (qs("licenseVariableSymbol")) qs("licenseVariableSymbol").textContent = payment?.payment?.variableSymbol || state.me.license.variableSymbol || "—";
-    if (qs("licenseAmount")) qs("licenseAmount").textContent = money(payment?.payment?.amount || 0);
-    if (qs("licenseIban")) qs("licenseIban").textContent = payment?.payment?.iban || "—";
-    if (qs("licenseBic")) qs("licenseBic").textContent = payment?.payment?.bic || "—";
-    if (qs("licenseBeneficiary")) qs("licenseBeneficiary").textContent = payment?.payment?.beneficiaryName || "—";
-    if (qs("licensePaymentNote")) qs("licensePaymentNote").textContent = payment?.payment?.paymentNote || "—";
-
-    if (qs("licenseMiniStatus")) qs("licenseMiniStatus").textContent = state.me.license.paymentStatus === "paid" || status === "active" ? "uhradené" : "čaká na úhradu";
-    if (qs("licenseMiniVs")) qs("licenseMiniVs").textContent = payment?.payment?.variableSymbol || "—";
+    fillPaymentFields("license", payment?.payment || {}, {
+      variableSymbol: state.me.license.variableSymbol || ""
+    });
+    if (qs("licenseMiniVs")) qs("licenseMiniVs").textContent = payment?.payment?.variableSymbol || state.me.license.variableSymbol || "—";
+    if (qs("licenseMiniVsMirror")) qs("licenseMiniVsMirror").textContent = payment?.payment?.variableSymbol || state.me.license.variableSymbol || "—";
     if (qs("licenseMiniAmount")) qs("licenseMiniAmount").textContent = money(payment?.payment?.amount || 0);
-    if (qs("licenseStatusBadgeMirror")) qs("licenseStatusBadgeMirror").textContent = status;
-    if (qs("licenseMiniVsMirror")) qs("licenseMiniVsMirror").textContent = payment?.payment?.variableSymbol || "—";
-
-    const setQr = (imgId, placeholderId) => {
-      const img = qs(imgId);
-      const placeholder = qs(placeholderId);
-      if (img && payment?.imageBase64) {
-        img.src = `data:image/png;base64,${payment.imageBase64}`;
-        img.style.display = "block";
-        if (placeholder) placeholder.style.display = "none";
-      }
-    };
-
-    setQr("licenseQrImage", "licenseQrPlaceholder");
-    setQr("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder");
+    setQrImage("licenseQrImage", "licenseQrPlaceholder", payment?.imageBase64 || "");
+    setQrImage("dashboardLicenseQrImage", "dashboardLicenseQrPlaceholder", payment?.imageBase64 || "");
   } catch (err) {
-    setStatus(qs("licenseStatusMessage") || qs("dashboardLicenseStatus"), err.message, "err");
+    setStatus(qs("licenseStatusMessage") || qs("dashboardLicenseStatus"), normalizeApiMessage(err), "err");
   }
 
   qs("copyLicenseVsBtn")?.addEventListener("click", async () => {
@@ -644,7 +682,7 @@ async function bindLicense() {
       setStatus(qs("changePasswordStatus"), "Heslo bolo zmenené.", "ok");
       changePasswordForm.reset();
     } catch (err) {
-      setStatus(qs("changePasswordStatus"), err.message, "err");
+      setStatus(qs("changePasswordStatus"), normalizeApiMessage(err), "err");
     }
   });
 }
@@ -721,6 +759,7 @@ async function bindAdmin() {
           <button class="btn-small btn-paid" data-paid="${user.id}">Označiť uhradené</button>
           <button class="btn-small btn-activate" data-activate="${user.id}">Aktivovať</button>
           <button class="btn-small btn-delete" data-block="${user.id}">Blokovať</button>
+          <button class="btn-small btn-danger" data-remove="${user.id}">Vymazať</button>
           <button class="btn-small btn-reset" data-reset="${user.id}">Reset hesla</button>
         </div>
       `;
@@ -733,7 +772,7 @@ async function bindAdmin() {
         await loadAdminUsers();
         setStatus(qs("adminStatus"), "Používateľ bol aktivovaný.", "ok");
       } catch (err) {
-        setStatus(qs("adminStatus"), err.message, "err");
+        setStatus(qs("adminStatus"), normalizeApiMessage(err), "err");
       }
     }));
 
@@ -743,7 +782,7 @@ async function bindAdmin() {
         await loadAdminUsers();
         setStatus(qs("adminStatus"), "Používateľ bol zablokovaný.", "ok");
       } catch (err) {
-        setStatus(qs("adminStatus"), err.message, "err");
+        setStatus(qs("adminStatus"), normalizeApiMessage(err), "err");
       }
     }));
 
@@ -753,10 +792,26 @@ async function bindAdmin() {
         await loadAdminUsers();
         setStatus(qs("adminStatus"), "Platba bola označená ako uhradená.", "ok");
       } catch (err) {
-        setStatus(qs("adminStatus"), err.message, "err");
+        setStatus(qs("adminStatus"), normalizeApiMessage(err), "err");
       }
     }));
 
+
+    list.querySelectorAll("[data-remove]").forEach((btn) => btn.addEventListener("click", async () => {
+      const confirmed = window.confirm("Naozaj chceš tohto používateľa vymazať? Táto akcia sa nedá ľahko vrátiť späť.");
+      if (!confirmed) return;
+      try {
+        try {
+          await api(`/api/admin/users/${btn.dataset.remove}`, { method: "DELETE" });
+        } catch (deleteErr) {
+          await api(`/api/admin/users/${btn.dataset.remove}/delete`, { method: "POST" });
+        }
+        await loadAdminUsers();
+        setStatus(qs("adminStatus"), "Používateľ bol vymazaný.", "ok");
+      } catch (err) {
+        setStatus(qs("adminStatus"), normalizeApiMessage(err), "err");
+      }
+    }));
     list.querySelectorAll("[data-reset]").forEach((btn) => btn.addEventListener("click", async () => {
       try {
         const newPassword = prompt("Zadaj nové heslo (min. 8 znakov):");
@@ -769,7 +824,7 @@ async function bindAdmin() {
         });
         setStatus(qs("adminStatus"), "Heslo bolo resetované.", "ok");
       } catch (err) {
-        setStatus(qs("adminStatus"), err.message, "err");
+        setStatus(qs("adminStatus"), normalizeApiMessage(err), "err");
       }
     }));
   };
@@ -812,7 +867,7 @@ async function bindAdmin() {
       if (qs("billingAmount")) qs("billingAmount").value = String(cfg.amount || "");
       if (qs("billingPaymentNote")) qs("billingPaymentNote").value = cfg.paymentNote || "";
     } catch (err) {
-      setStatus(qs("billingCompanyStatus"), err.message, "err");
+      setStatus(qs("billingCompanyStatus"), normalizeApiMessage(err), "err");
     }
 
     billingForm.addEventListener("submit", async (e) => {
@@ -827,7 +882,7 @@ async function bindAdmin() {
         });
         setStatus(qs("billingCompanyStatus"), "Fakturačná firma bola uložená.", "ok");
       } catch (err) {
-        setStatus(qs("billingCompanyStatus"), err.message, "err");
+        setStatus(qs("billingCompanyStatus"), normalizeApiMessage(err), "err");
       }
     });
   }
